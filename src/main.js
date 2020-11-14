@@ -1,14 +1,9 @@
+require("./index.html");
+require("./styles.css");
+
 const Handlebars = require("handlebars");
 
-
-// JSON.parse(localStorage[myData];
-// console.log(JSON.parse(localStorage.myData));
-
-let a = 0;
 let comments = {};
-rrg
-
-console.log(localStorage);
 
 ymaps.ready(init);
 
@@ -39,11 +34,11 @@ function onMapClick(e) {
 
 function onGeoObjectClick(e) {
     const coords = e.get('target').geometry.getCoordinates();
-
+    console.log(coords);
     ymaps.map.balloon.open(coords, {
         content: balloonDom(coords)
     });
-    // console.log(comments);
+
 }
 
 function buttonClick(e) {
@@ -54,16 +49,18 @@ function buttonClick(e) {
         let reviewsInput = document.getElementById("reviewsInput");
 
         let coordsName = coords.join(',')
+        console.log(coordsName);
         comments[coordsName] = comments[coordsName] || [];
         comments[coordsName].push({
             name: nameInput.value,
             place: placeNameInput.value,
             comment: reviewsInput.value
         })
-        localStorage['myData'] + (JSON.stringify(comments));
-        console.log(localStorage.myData);
+
+        // localStorage['myData'] + (JSON.stringify(comments));
+        // console.log(localStorage.myData); добавление в локал сторэдж
+
         ymaps.map.geoObjects.add(new ymaps.Placemark(coords))
-        // console.log(ymaps.map.geoObjects);
         ymaps.map.balloon.close();
     }
 }
@@ -71,26 +68,28 @@ function buttonClick(e) {
 function balloonDom(coords) {
     //прохожусь по comments и добавляю комментарии, если они есть
     let coordsName = coords.join(',')
-    let template = ''
-    if (comments[coordsName]) {
-        template = Handlebars.compile([
-            '<div class="review">{{#each comments[coordsName]}}',
-            '<div><b>{{name}}<b> [{{place}}]</div>',
+    
+    const template = Handlebars.compile(
+        ['<div class="balun" id="balun">',
+            '<div class="reviews">',
+            '<ul class="review">',
+            `{{#each [${coordsName}]}}`,
+            '<li>',
+            '<div><b>{{name}}</b> <i>{{place}}</i></div>',
             '<div>{{comment}}</div>',
-            '</div>'].join(''))
-    }
-
-    return ['<div class="balun" id="balun">',
-        '<div class="reviews">',
-        `${template}`,
-        '</div> <br>',
-        '<div class="my_review">',
-        '<div class="head">Отзыв</div> <br>',
-        '<input type="text" name="nameInput" id="nameInput" placeholder="Укажите ваше имя"> <br>',
-        '<input type="text" name="placeNameInput" id="placeNameInput" placeholder="Укажите место"> <br>',
-        '<textarea name="reviewsInput" id="reviewsInput" cols="30" rows="8" placeholder="Введите комментарий"></textarea> <br>',
-        '</div>',
-        `<button class="addButton" data-coords="${JSON.stringify(coords)}">Добавить</button>`,
+            '</li>',
+            '{{/each}}',
+            '</ul>',
+            '</div> <br>',
+            '<div class="my_review">',
+            '<div class="head">Отзыв</div> <br>',
+            '<input type="text" name="nameInput" id="nameInput" placeholder="Укажите ваше имя"> <br>',
+            '<input type="text" name="placeNameInput" id="placeNameInput" placeholder="Укажите место"> <br>',
+            '<textarea name="reviewsInput" id="reviewsInput" cols="30" rows="8" placeholder="Введите комментарий"></textarea> <br>',
+            '</div>',
+            `<button class="addButton" data-coords="${JSON.stringify(coords)}">Добавить</button>`,
         '</div>'
-    ].join('');
+        ].join(''));
+
+    return template(comments);
 }

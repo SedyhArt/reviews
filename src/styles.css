@@ -17,6 +17,11 @@ body {
   /* position: relative; */
 }
 
+.review {
+  list-style: none;
+  padding: 0;
+}
+
 .my_review {
   display: flex;
   flex-direction: column;
