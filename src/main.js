@@ -14,6 +14,11 @@ function init() {
         center: [59.93690597, 30.35463695],
         zoom: 10
     });
+    const clusterer = new ymaps.Clusterer({
+        groupByCoordinates: true,
+        clusterDisableClickZoom: true
+    })
+    ymaps.map.geoObjects.add(clusterer);
 
     ymaps.map.events.add('click', onMapClick)
     ymaps.map.geoObjects.events.add('click', onGeoObjectClick)
@@ -59,8 +64,10 @@ function buttonClick(e) {
 
         // localStorage['myData'] + (JSON.stringify(comments));
         // console.log(localStorage.myData); добавление в локал сторэдж
-
-        ymaps.map.geoObjects.add(new ymaps.Placemark(coords))
+        const placemark = new ymaps.Placemark(coords);
+        const myClusterer = new ymaps.Clusterer()
+        myClusterer.add(placemark);
+        ymaps.map.geoObjects.add(placemark);
         ymaps.map.balloon.close();
     }
 }

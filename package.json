@@ -12,11 +12,6 @@
   },
   "author": "",
   "license": "MIT",
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "lint-staged": {
     "*.[jt]s": [
       "eslint --cache --fix"
