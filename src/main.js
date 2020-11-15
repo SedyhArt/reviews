@@ -9,16 +9,28 @@ ymaps.ready(init);
 
 document.addEventListener('click', buttonClick);
 
+function createPlacemark() {
+    if (localStorage.data) {
+        const data = JSON.parse(localStorage.data);
+        for (let coords in data) {
+            ymaps.clusterer.add(new ymaps.Placemark(coords));
+        }
+        
+    }
+}
+
 function init() {
     ymaps.map = new ymaps.Map("map", {
         center: [59.93690597, 30.35463695],
         zoom: 10
     });
-    const clusterer = new ymaps.Clusterer({
-        groupByCoordinates: true,
-        clusterDisableClickZoom: true
+
+    ymaps.clusterer = new ymaps.Clusterer({
+        clusterDisableClickZoom: true,
+        clusterBalloonContentLayout: 'cluster#balloonCarousel'
+        
     })
-    ymaps.map.geoObjects.add(clusterer);
+    ymaps.map.geoObjects.add(ymaps.clusterer);
 
     ymaps.map.events.add('click', onMapClick)
     ymaps.map.geoObjects.events.add('click', onGeoObjectClick)
@@ -39,10 +51,11 @@ function onMapClick(e) {
 
 function onGeoObjectClick(e) {
     const coords = e.get('target').geometry.getCoordinates();
-    console.log(coords);
     ymaps.map.balloon.open(coords, {
         content: balloonDom(coords)
-    });
+    })
+
+    
 
 }
 
@@ -52,30 +65,27 @@ function buttonClick(e) {
         let nameInput = document.getElementById("nameInput");
         let placeNameInput = document.getElementById("placeNameInput");
         let reviewsInput = document.getElementById("reviewsInput");
+        let coordsName = coords.join(',');
 
-        let coordsName = coords.join(',')
-        console.log(coordsName);
+        
         comments[coordsName] = comments[coordsName] || [];
         comments[coordsName].push({
             name: nameInput.value,
             place: placeNameInput.value,
             comment: reviewsInput.value
         })
+       
+        localStorage.setItem('data', JSON.stringify(comments));
 
-        // localStorage['myData'] + (JSON.stringify(comments));
-        // console.log(localStorage.myData); добавление в локал сторэдж
         const placemark = new ymaps.Placemark(coords);
-        const myClusterer = new ymaps.Clusterer()
-        myClusterer.add(placemark);
-        ymaps.map.geoObjects.add(placemark);
+        ymaps.clusterer.add(placemark);
         ymaps.map.balloon.close();
     }
 }
 
 function balloonDom(coords) {
-    //прохожусь по comments и добавляю комментарии, если они есть
     let coordsName = coords.join(',')
-    
+   
     const template = Handlebars.compile(
         ['<div class="balun" id="balun">',
             '<div class="reviews">',
@@ -95,8 +105,26 @@ function balloonDom(coords) {
             '<textarea name="reviewsInput" id="reviewsInput" cols="30" rows="8" placeholder="Введите комментарий"></textarea> <br>',
             '</div>',
             `<button class="addButton" data-coords="${JSON.stringify(coords)}">Добавить</button>`,
-        '</div>'
+            '</div>'
         ].join(''));
 
     return template(comments);
 }
+createPlacemark();
+// function clasterDom() {
+//     let coordsName = coords.join(',')
+//     const template = Handlebars.compile(
+//         ['<div class="reviews">',
+//         '<ul class="review">',
+//         `{{#each [${coordsName}]}}`,
+//         '<li>',
+//         '<div><b>{{name}}</b> <i>{{place}}</i></div>',
+//         '<div>{{comment}}</div>',
+//         '</li>',
+//         '{{/each}}',
+//         '</ul>',
+//         '</div>',
+//     ].join(' '));
+
+//     return template(comments);
+// }

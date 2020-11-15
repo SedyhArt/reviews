@@ -10,15 +10,26 @@
 <body>
   <div id="map" class="map"></div>
 </body>
-<script id="entry-template" type="text/x-handlebars-template">
-    <ul>
-      {{#each coordsName}}
-      <li>
-        <div>{{name}} {{place}}</div>
-        <div>{{comment}}</div>
-      </li>
-      {{/each}}
+<script id="balloon" type="text/html">
+  <div class="reviews">
+    <ul class="review">
+      <div class="balloon" id="balloon">
+        {{#each [${coordsName}]}}
+        <li>
+          <div><b>{{name}}</b> <i>{{place}}</i></div>
+          <div>{{comment}}</div>
+        </li>
+        {{/each}}
     </ul>
+  </div> 
+  <div class="my_review">
+    <div class="head">Отзыв</div>
+    <input type="text" name="nameInput" id="nameInput" placeholder="Укажите ваше имя"> <br>
+    <input type="text" name="placeNameInput" id="placeNameInput" placeholder="Укажите место"> <br>
+    <textarea name="reviewsInput" id="reviewsInput" cols="30" rows="8" placeholder="Введите комментарий"></textarea> <br>
+    <div>
+    <button class="addButton" data-coords="${JSON.stringify(coords)}">Добавить</button>
+    </div>
   </script>
 
 </html>
