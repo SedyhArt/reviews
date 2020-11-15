@@ -4,6 +4,7 @@ require("./styles.css");
 const Handlebars = require("handlebars");
 
 let comments = {};
+// localStorage.setItem('data', "{}");
 
 ymaps.ready(init);
 
@@ -13,9 +14,9 @@ function createPlacemark() {
     if (localStorage.data) {
         const data = JSON.parse(localStorage.data);
         for (let coords in data) {
-            ymaps.clusterer.add(new ymaps.Placemark(coords));
+            ymaps.clusterer.add(new ymaps.Placemark(coords.split(',')));
         }
-        
+
     }
 }
 
@@ -28,12 +29,13 @@ function init() {
     ymaps.clusterer = new ymaps.Clusterer({
         clusterDisableClickZoom: true,
         clusterBalloonContentLayout: 'cluster#balloonCarousel'
-        
+
     })
     ymaps.map.geoObjects.add(ymaps.clusterer);
 
     ymaps.map.events.add('click', onMapClick)
-    ymaps.map.geoObjects.events.add('click', onGeoObjectClick)
+    ymaps.map.geoObjects.events.add('click', onGeoObjectClick);
+    createPlacemark()
 }
 
 
@@ -51,11 +53,12 @@ function onMapClick(e) {
 
 function onGeoObjectClick(e) {
     const coords = e.get('target').geometry.getCoordinates();
+    
     ymaps.map.balloon.open(coords, {
         content: balloonDom(coords)
     })
 
-    
+
 
 }
 
@@ -66,16 +69,30 @@ function buttonClick(e) {
         let placeNameInput = document.getElementById("placeNameInput");
         let reviewsInput = document.getElementById("reviewsInput");
         let coordsName = coords.join(',');
+        console.log(coordsName);
+        const data = JSON.parse(localStorage.data);
+
+        if (data[coordsName]) {
+            console.log("loh")
+            data[coordsName].push({
+                name: nameInput.value,
+                place: placeNameInput.value,
+                comment: reviewsInput.value
+            })
+        } else {
+            console.log("loh2")
+            data[coordsName] = [{
+                name: nameInput.value,
+                place: placeNameInput.value,
+                comment: reviewsInput.value
+            }]
+        }
+        
 
         
-        comments[coordsName] = comments[coordsName] || [];
-        comments[coordsName].push({
-            name: nameInput.value,
-            place: placeNameInput.value,
-            comment: reviewsInput.value
-        })
-       
-        localStorage.setItem('data', JSON.stringify(comments));
+
+
+        localStorage.setItem('data', JSON.stringify(data));
 
         const placemark = new ymaps.Placemark(coords);
         ymaps.clusterer.add(placemark);
@@ -104,13 +121,13 @@ function balloonDom(coords) {
             '<input type="text" name="placeNameInput" id="placeNameInput" placeholder="Укажите место"> <br>',
             '<textarea name="reviewsInput" id="reviewsInput" cols="30" rows="8" placeholder="Введите комментарий"></textarea> <br>',
             '</div>',
-            `<button class="addButton" data-coords="${JSON.stringify(coords)}">Добавить</button>`,
+            `<button class="addButton" data-coords="${JSON.stringify(coords.map(Number))}">Добавить</button>`,
             '</div>'
         ].join(''));
 
-    return template(comments);
+    return template(JSON.parse(localStorage.data));
 }
-createPlacemark();
+
 // function clasterDom() {
 //     let coordsName = coords.join(',')
 //     const template = Handlebars.compile(
