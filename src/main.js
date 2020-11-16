@@ -1,147 +1,81 @@
-require("./index.html");
-require("./styles.css");
+const container = document.querySelector('#map');
+const interactiveMap = require('./js/interactiveMap.js');
+const events = require('./js/events.js');
+const api = require('./js/api.js');
 
-const Handlebars = require("handlebars");
+ymaps.ready(async () => {
+  console.log('Ymaps ready');
+  
+  const customBalloonTemplate = document.getElementById('customBalloonTemplate').innerHTML;
+  const customClustererItemLayout = document.getElementById('customClustererItemLayout').innerHTML;
 
-let comments = {};
-// localStorage.setItem('data', "{}");
+  const balloonTemplate = ymaps.templateLayoutFactory.createClass(customBalloonTemplate, {
+    build: function () {
+      this.constructor.superclass.build.call(this);
+      this._$element = $('.popover', this.getParentElement());
+      this.applyElementOffset();
+      this._$element.find('.close').on('click', $.proxy(this.onCloseClick, this));
+    },
+    clear: function () {
+        this._$element.find('.close').off('click');
+        this.constructor.superclass.clear.call(this);
+    },
+    onSublayoutSizeChange: function () {
+      balloonTemplate.superclass.onSublayoutSizeChange.apply(this, arguments);
 
-ymaps.ready(init);
+      if(!this._isElement(this._$element)) {
+        return;
+      }
 
-document.addEventListener('click', buttonClick);
+      this.applyElementOffset();
+      this.events.fire('shapechange');
+    },
+    applyElementOffset: function () {
+      this._$element.css({
+        left: -(this._$element[0].offsetWidth / 2),
+        top: -(this._$element[0].offsetHeight + this._$element.find('.arrow')[0].offsetHeight)
+      });
+    },
+    onCloseClick: function (e) {
+      e.preventDefault();
 
-function createPlacemark() {
-    if (localStorage.data) {
-        const data = JSON.parse(localStorage.data);
-        for (let coords in data) {
-            ymaps.clusterer.add(new ymaps.Placemark(coords.split(',')));
-        }
+      this.events.fire('userclose');
+    },
+    getShape: function () {
+      if(!this._isElement(this._$element)) {
+        return MyBalloonLayout.superclass.getShape.call(this);
+      }
 
+      var position = this._$element.position();
+
+      return new ymaps.shape.Rectangle(new ymaps.geometry.pixel.Rectangle([
+        [position.left, position.top], [
+          position.left + this._$element[0].offsetWidth,
+          position.top + this._$element[0].offsetHeight + this._$element.find('.arrow')[0].offsetHeight
+        ]
+      ]));
+    },
+    _isElement: function (element) {
+      return element && element[0] && element.find('.arrow')[0];
     }
-}
+  });
+  const clustererItemLayout = ymaps.templateLayoutFactory.createClass(customClustererItemLayout);
 
-function init() {
-    ymaps.map = new ymaps.Map("map", {
-        center: [59.93690597, 30.35463695],
-        zoom: 10
-    });
+  ymaps.layout.storage.add('my#customBalloonLayout', balloonTemplate);
+  ymaps.layout.storage.add('my#clustererItemLayout', clustererItemLayout);
 
-    ymaps.clusterer = new ymaps.Clusterer({
-        clusterDisableClickZoom: true,
-        clusterBalloonContentLayout: 'cluster#balloonCarousel'
+  try {
+    const coords = await interactiveMap.geoLocation();
+    const placemarks = await api.getPlacmarks();
 
-    })
-    ymaps.map.geoObjects.add(ymaps.clusterer);
+    interactiveMap.map(coords, container);
+    interactiveMap.clusterer();
+    interactiveMap.createPlacemarks(placemarks)
+  
+    events.click();
+  } catch (error) {
+    console.log(error);
+  }
+});
 
-    ymaps.map.events.add('click', onMapClick)
-    ymaps.map.geoObjects.events.add('click', onGeoObjectClick);
-    createPlacemark()
-}
-
-
-function onMapClick(e) {
-    var coords = e.get('coords');
-
-    if (!ymaps.map.balloon.isOpen()) {
-        ymaps.map.balloon.open(coords, {
-            content: balloonDom(coords)
-        });
-    } else {
-        ymaps.map.balloon.close();
-    }
-}
-
-function onGeoObjectClick(e) {
-    const coords = e.get('target').geometry.getCoordinates();
-    
-    ymaps.map.balloon.open(coords, {
-        content: balloonDom(coords)
-    })
-
-
-
-}
-
-function buttonClick(e) {
-    if (e.target.classList.contains("addButton")) {
-        const coords = JSON.parse(e.target.dataset.coords);
-        let nameInput = document.getElementById("nameInput");
-        let placeNameInput = document.getElementById("placeNameInput");
-        let reviewsInput = document.getElementById("reviewsInput");
-        let coordsName = coords.join(',');
-        console.log(coordsName);
-        const data = JSON.parse(localStorage.data);
-
-        if (data[coordsName]) {
-            console.log("loh")
-            data[coordsName].push({
-                name: nameInput.value,
-                place: placeNameInput.value,
-                comment: reviewsInput.value
-            })
-        } else {
-            console.log("loh2")
-            data[coordsName] = [{
-                name: nameInput.value,
-                place: placeNameInput.value,
-                comment: reviewsInput.value
-            }]
-        }
-        
-
-        
-
-
-        localStorage.setItem('data', JSON.stringify(data));
-
-        const placemark = new ymaps.Placemark(coords);
-        ymaps.clusterer.add(placemark);
-        ymaps.map.balloon.close();
-    }
-}
-
-function balloonDom(coords) {
-    let coordsName = coords.join(',')
-   
-    const template = Handlebars.compile(
-        ['<div class="balun" id="balun">',
-            '<div class="reviews">',
-            '<ul class="review">',
-            `{{#each [${coordsName}]}}`,
-            '<li>',
-            '<div><b>{{name}}</b> <i>{{place}}</i></div>',
-            '<div>{{comment}}</div>',
-            '</li>',
-            '{{/each}}',
-            '</ul>',
-            '</div> <br>',
-            '<div class="my_review">',
-            '<div class="head">Отзыв</div> <br>',
-            '<input type="text" name="nameInput" id="nameInput" placeholder="Укажите ваше имя"> <br>',
-            '<input type="text" name="placeNameInput" id="placeNameInput" placeholder="Укажите место"> <br>',
-            '<textarea name="reviewsInput" id="reviewsInput" cols="30" rows="8" placeholder="Введите комментарий"></textarea> <br>',
-            '</div>',
-            `<button class="addButton" data-coords="${JSON.stringify(coords.map(Number))}">Добавить</button>`,
-            '</div>'
-        ].join(''));
-
-    return template(JSON.parse(localStorage.data));
-}
-
-// function clasterDom() {
-//     let coordsName = coords.join(',')
-//     const template = Handlebars.compile(
-//         ['<div class="reviews">',
-//         '<ul class="review">',
-//         `{{#each [${coordsName}]}}`,
-//         '<li>',
-//         '<div><b>{{name}}</b> <i>{{place}}</i></div>',
-//         '<div>{{comment}}</div>',
-//         '</li>',
-//         '{{/each}}',
-//         '</ul>',
-//         '</div>',
-//     ].join(' '));
-
-//     return template(comments);
-// }
+localStorage.setItem('placemarks', '{}')
